@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Land Distribution Calculator</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172337; background: #f5f7fb; }
+    * { box-sizing: border-box; }
+    body { max-width: 1050px; margin: 44px auto; padding: 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(1.5rem, 3vw, 2rem); }
+    p { margin: 0; color: #56657a; }
+    .inputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 26px 0 14px; }
+    .field, .table-card { background: white; border: 1px solid #e3e8f0; border-radius: 14px; }
+    .field { padding: 18px; }
+    label { display: block; font-weight: 650; margin-bottom: 10px; }
+    input { width: 100%; border: 1px solid #ccd6e4; border-radius: 9px; padding: 11px 13px; font: inherit; outline-color: #2465d5; }
+    .summary { margin: 0 0 20px; font-size: 1.07rem; }
+    .summary strong { color: #124da8; }
+    .table-card { overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; text-align: right; font-variant-numeric: tabular-nums; }
+    th, td { padding: 13px 15px; border-bottom: 1px solid #edf0f5; white-space: nowrap; }
+    th { background: #f9fafc; color: #526176; font-size: .83rem; }
+    td:first-child, th:first-child { text-align: left; }
+    tr:last-child td { border: 0; }
+    tfoot td { background: #f1f6ff; font-weight: 700; }
+    .scroller { overflow-x: auto; }
+    .note { margin-top: 16px; font-size: .88rem; line-height: 1.6; }
+    @media (max-width: 600px) { body { margin: 22px auto; } .inputs { grid-template-columns: 1fr; } th,td { padding: 11px; } }
+  </style>
+</head>
+<body>
+  <h1>Land Distribution Calculator</h1>
+  <p>Change either amount to update every person's share instantly. Unit: shotok (শতক).</p>
+
+  <div class="inputs">
+    <div class="field">
+      <label for="inherited">Inherited land (shotok)</label>
+      <input id="inherited" type="number" min="0" step="any" value="32">
+    </div>
+    <div class="field">
+      <label for="purchased">Purchased land (shotok)</label>
+      <input id="purchased" type="number" min="0" step="any" value="5">
+    </div>
+  </div>
+
+  <p class="summary">Total land: <strong id="grandTotal">37.0000 shotok</strong></p>
+
+  <div class="table-card scroller">
+    <table>
+      <thead>
+        <tr><th>Name</th><th>Inherited</th><th>Purchased</th><th>Total (shotok)</th></tr>
+      </thead>
+      <tbody id="rows"></tbody>
+      <tfoot><tr><td>Total</td><td id="inheritedTotal"></td><td id="purchasedTotal"></td><td id="total"></td></tr></tfoot>
+    </table>
+  </div>
+  <p class="note"><strong>Important:</strong> The inherited proportions are taken from the previous provisional family calculation and are <strong>not legally verified</strong>. The purchased land is assumed to be owned equally by the six named purchasers. Actual rights depend on inheritance law, heirs at each death, and registered deeds. Mira and Sima remain included until a legally effective transfer is established.</p>
+
+  <script>
+    // Inherited amounts from the previous 32-shotok example; normalized to 100%.
+    // Purchased: each of the six purchasers gets one-sixth.
+    const people = [
+      { name: "Sorab's son", inheritedWeight: 3.7647, purchaser: true },
+      { name: "Monu", inheritedWeight: 4.5084, purchaser: true },
+      { name: "Milon", inheritedWeight: 4.5084, purchaser: true },
+      { name: "Sanwar", inheritedWeight: 4.5084, purchaser: true },
+      { name: "Bulton", inheritedWeight: 4.5084, purchaser: true },
+      { name: "Tuhin", inheritedWeight: 2.2542, purchaser: true },
+      { name: "Sima", inheritedWeight: 2.2542, purchaser: false },
+      { name: "Mira", inheritedWeight: 2.2542, purchaser: false },
+      { name: "Babul's wife", inheritedWeight: 0.5430, purchaser: false },
+      { name: "Babul's daughter 1", inheritedWeight: 0.9653, purchaser: false },
+      { name: "Babul's daughter 2", inheritedWeight: 0.9653, purchaser: false },
+      { name: "Babul's daughter 3", inheritedWeight: 0.9653, purchaser: false }
+    ];
+
+    const sumOfWeights = people.reduce((sum, person) => sum + person.inheritedWeight, 0);
+    const purchaserCount = people.filter(person => person.purchaser).length;
+    const format = number => number.toFixed(4);
+
+    function updateTable() {
+      const inherited = Math.max(0, Number(document.getElementById('inherited').value) || 0);
+      const purchased = Math.max(0, Number(document.getElementById('purchased').value) || 0);
+      const rows = people.map(person => {
+        const inheritedAmount = inherited * person.inheritedWeight / sumOfWeights;
+        const purchasedAmount = person.purchaser ? purchased / purchaserCount : 0;
+        return `<tr><td>${person.name}</td><td>${format(inheritedAmount)}</td><td>${format(purchasedAmount)}</td><td><strong>${format(inheritedAmount + purchasedAmount)}</strong></td></tr>`;
+      });
+      document.getElementById('rows').innerHTML = rows.join('');
+      document.getElementById('inheritedTotal').textContent = format(inherited);
+      document.getElementById('purchasedTotal').textContent = format(purchased);
+      document.getElementById('total').textContent = format(inherited + purchased);
+      document.getElementById('grandTotal').textContent = `${format(inherited + purchased)} shotok`;
+    }
+
+    document.getElementById('inherited').addEventListener('input', updateTable);
+    document.getElementById('purchased').addEventListener('input', updateTable);
+    updateTable();
+  </script>
+</body>
+</html>
