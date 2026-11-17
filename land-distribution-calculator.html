@@ -307,6 +307,14 @@
       font-weight: 650;
     }
 
+    .adjustments { margin-top: 28px; }
+    .adjustments h2 { margin: 0 0 12px; font-size: 1.2rem; }
+    .adjustment-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    .adjustment-controls label { margin: 0; }
+    .adjustment-controls select { padding: 8px; border: 1px solid #ccd6e4; border-radius: 8px; font: inherit; }
+    .adjustment-status { margin-top: 12px; font-size: .9rem; }
+    .adjustment-status[data-state="error"] { color: #b42318; }
+
     @media (max-width: 600px) {
       body {
         margin: 22px auto;
@@ -452,6 +460,19 @@
     </div>
   </section>
 
+  <section class="adjustments" aria-labelledby="adjustments-heading">
+    <h2 id="adjustments-heading">Proposed adjusted land distribution</h2>
+    <div class="table-card scroller">
+      <table>
+        <thead><tr><th scope="col">Name</th><th scope="col">Inherited</th><th scope="col">Purchased</th><th scope="col">Combined (shotok)</th><th scope="col">Adjustment (%)</th><th scope="col">Change (shotok)</th><th scope="col">Revised (shotok)</th></tr></thead>
+        <tbody id="adjustment-rows"></tbody>
+        <tfoot><tr><td>Total land</td><td id="adjustment-inherited"></td><td id="adjustment-purchased"></td><td id="adjustment-current"></td><td id="adjustment-percentage"></td><td id="adjustment-change"></td><td id="adjustment-revised"></td></tr></tfoot>
+      </table>
+    </div>
+    <p class="note">Inherited and purchased land are combined before adjustments. Fixed percentages apply to the combined total land. Sima and Mira are included with unchanged shares. Proposed distribution, not a valuation.</p>
+    <p id="adjustment-status" class="adjustment-status" role="status" aria-live="polite"></p>
+  </section>
+
   <script>
     // Inherited amounts from the previous 32-shotok example; normalized to 100%.
     // Purchased: each of the six purchasers gets one-sixth.
@@ -474,6 +495,60 @@
     const purchaserCount = people.filter(person => person.purchaser).length;
     const format = number => number.toFixed(4);
 
+    const adjustmentGroups = [
+      { name: "Sorab's son", members: [0], direction: 1 },
+      { name: "Monu", members: [1], direction: 1 },
+      { name: "Milon", members: [2], direction: 1 },
+      { name: "Sanwar", members: [3], direction: -1 },
+      { name: "Bulton", members: [4], direction: 1 },
+      { name: "Tuhin", members: [5], direction: 0 },
+      { name: "Babul's family", members: [8, 9, 10, 11], direction: -1 },
+      { name: "Sima", members: [6], direction: 0 },
+      { name: "Mira", members: [7], direction: 0 }
+    ];
+
+    const proposedPercentages = [0.5, 0.4, 0.7, 1, 0.4, 0, 1, 0, 0];
+
+    document.getElementById('adjustment-rows').innerHTML = adjustmentGroups.map((group, index) =>
+      `<tr><td>${group.name}</td><td id="inherited-${index}"></td><td id="purchased-${index}"></td><td id="current-${index}"></td><td>${group.direction ? `${group.direction < 0 ? '&minus;' : '+'}${proposedPercentages[index]}%` : '&mdash;'}</td><td id="change-${index}"></td><td><strong id="revised-${index}"></strong></td></tr>`
+    ).join('');
+
+    function updateAdjustments() {
+      const inherited = Math.max(0, Number(document.getElementById('inherited').value) || 0);
+      const purchased = Math.max(0, Number(document.getElementById('purchased').value) || 0);
+      const basis = inherited + purchased;
+      let currentTotal = 0, percentTotal = 0, changeTotal = 0, hasAdjustment = false, invalid = false;
+      adjustmentGroups.forEach((group, index) => {
+        const inheritedAmount = group.members.reduce((sum, member) => sum + inherited * people[member].inheritedWeight / sumOfWeights, 0);
+        const purchasedAmount = group.members.reduce((sum, member) => sum + (people[member].purchaser ? purchased / purchaserCount : 0), 0);
+        const current = inheritedAmount + purchasedAmount;
+        const magnitude = proposedPercentages[index];
+        const percentage = magnitude * group.direction;
+        const change = basis * percentage / 100;
+        const revised = current + change;
+        invalid ||= revised < -1e-8;
+        hasAdjustment ||= magnitude !== 0;
+        currentTotal += current;
+        percentTotal += percentage;
+        changeTotal += change;
+        document.getElementById(`inherited-${index}`).textContent = format(inheritedAmount);
+        document.getElementById(`purchased-${index}`).textContent = format(purchasedAmount);
+        document.getElementById(`current-${index}`).textContent = format(current);
+        document.getElementById(`change-${index}`).textContent = (change > 0 ? '+' : '') + format(change);
+        document.getElementById(`revised-${index}`).textContent = format(revised);
+      });
+      document.getElementById('adjustment-inherited').textContent = format(inherited);
+      document.getElementById('adjustment-purchased').textContent = format(purchased);
+      document.getElementById('adjustment-current').textContent = format(currentTotal);
+      document.getElementById('adjustment-percentage').textContent = format(percentTotal) + '%';
+      document.getElementById('adjustment-change').textContent = format(changeTotal);
+      document.getElementById('adjustment-revised').textContent = format(currentTotal + changeTotal);
+      const balanced = Math.abs(percentTotal) < 1e-8;
+      const status = document.getElementById('adjustment-status');
+      status.dataset.state = invalid || !balanced ? 'error' : 'ok';
+      status.textContent = invalid ? 'The proposed adjustment exceeds an available share. Review the land amounts.' : !hasAdjustment ? 'No adjustment applied.' : balanced ? 'Balanced: the total land is unchanged.' : `Unbalanced: additions and deductions differ by ${format(Math.abs(changeTotal))} shotok.`;
+    }
+
     function updateTable() {
       const inherited = Math.max(0, Number(document.getElementById('inherited').value) || 0);
       const purchased = Math.max(0, Number(document.getElementById('purchased').value) || 0);
@@ -487,6 +562,7 @@
       document.getElementById('purchasedTotal').textContent = format(purchased);
       document.getElementById('total').textContent = format(inherited + purchased);
       document.getElementById('grandTotal').textContent = `${format(inherited + purchased)} shotok`;
+      updateAdjustments();
     }
 
     document.getElementById('inherited').addEventListener('input', updateTable);
