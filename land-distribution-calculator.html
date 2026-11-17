@@ -74,6 +74,21 @@
       color: #124da8;
     }
 
+    .share-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 14px;
+      cursor: pointer;
+    }
+
+    .share-option input {
+      width: 18px;
+      height: 18px;
+      margin: 0;
+      padding: 0;
+    }
+
     .table-card {
       overflow: hidden;
     }
@@ -362,6 +377,11 @@
     </div>
   </div>
 
+  <label class="share-option" for="disable-sima-mira">
+    <input id="disable-sima-mira" type="checkbox" aria-describedby="excluded-share-note">
+    Disable Sima and Mira (set both shares to 0)
+  </label>
+  <p id="excluded-share-note" class="note" hidden></p>
   <p class="summary">Total land: <strong id="grandTotal">34.0000 shotok</strong></p>
 
   <div class="table-card scroller">
@@ -388,7 +408,7 @@
   <p class="note"><strong>Important:</strong> The inherited proportions are taken from the previous provisional family
     calculation and are <strong>not legally verified</strong>. The purchased land is assumed to be owned equally by the
     six named purchasers. Actual rights depend on inheritance law, heirs at each death, and registered deeds. Mira and
-    Sima remain included until a legally effective transfer is established.</p>
+    Sima are included by default; disabling their shares models a proposed scenario only.</p>
 
   <section class="timeline" aria-labelledby="timeline-heading">
     <h2 id="timeline-heading">Family death timeline</h2>
@@ -484,7 +504,7 @@
         <tfoot><tr><td>Total land</td><td id="adjustment-inherited"></td><td id="adjustment-purchased"></td><td id="adjustment-current"></td><td id="adjustment-percentage"></td><td id="adjustment-change"></td><td id="adjustment-revised"></td></tr></tfoot>
       </table>
     </div>
-    <p class="note">Inherited and purchased land are combined before adjustments. Fixed percentages apply to the combined total land. Sima and Mira are included with unchanged shares. Proposed distribution, not a valuation.</p>
+    <p class="note">Inherited and purchased land are combined before adjustments. Fixed percentages apply to the combined total land. Sima and Mira follow the checkbox above. When disabled, their inherited shares are divided proportionally among the remaining people. Proposed distribution, not a valuation.</p>
     <p id="adjustment-status" class="adjustment-status" role="status" aria-live="polite"></p>
   </section>
 
@@ -506,9 +526,21 @@
       { name: "Babul's daughter 3", inheritedWeight: 0.9653, purchaser: false }
     ];
 
-    const sumOfWeights = people.reduce((sum, person) => sum + person.inheritedWeight, 0);
     const purchaserCount = people.filter(person => person.purchaser).length;
     const format = number => number.toFixed(4);
+
+    function getShares(person, inherited, purchased) {
+      const disableSimaMira = document.getElementById('disable-sima-mira').checked;
+      const isIncluded = candidate => !disableSimaMira ||
+        (candidate.name !== 'Sima' && candidate.name !== 'Mira');
+      const excluded = !isIncluded(person);
+      const sumOfWeights = people.reduce((sum, candidate) =>
+        sum + (isIncluded(candidate) ? candidate.inheritedWeight : 0), 0);
+      return {
+        inherited: excluded ? 0 : inherited * person.inheritedWeight / sumOfWeights,
+        purchased: excluded ? 0 : person.purchaser ? purchased / purchaserCount : 0
+      };
+    }
 
     const adjustmentGroups = [
       { name: "Sorab's son", members: [0], direction: 1 },
@@ -532,10 +564,12 @@
       const inherited = Math.max(0, Number(document.getElementById('inherited').value) || 0);
       const purchased = Math.max(0, Number(document.getElementById('purchased').value) || 0);
       const basis = inherited + purchased;
+      let inheritedTotal = 0, purchasedTotal = 0;
       let currentTotal = 0, percentTotal = 0, changeTotal = 0, hasAdjustment = false, invalid = false;
       adjustmentGroups.forEach((group, index) => {
-        const inheritedAmount = group.members.reduce((sum, member) => sum + inherited * people[member].inheritedWeight / sumOfWeights, 0);
-        const purchasedAmount = group.members.reduce((sum, member) => sum + (people[member].purchaser ? purchased / purchaserCount : 0), 0);
+        const shares = group.members.map(member => getShares(people[member], inherited, purchased));
+        const inheritedAmount = shares.reduce((sum, share) => sum + share.inherited, 0);
+        const purchasedAmount = shares.reduce((sum, share) => sum + share.purchased, 0);
         const current = inheritedAmount + purchasedAmount;
         const magnitude = proposedPercentages[index];
         const percentage = magnitude * group.direction;
@@ -544,6 +578,8 @@
         invalid ||= revised < -1e-8;
         hasAdjustment ||= magnitude !== 0;
         currentTotal += current;
+        inheritedTotal += inheritedAmount;
+        purchasedTotal += purchasedAmount;
         percentTotal += percentage;
         changeTotal += change;
         document.getElementById(`inherited-${index}`).textContent = format(inheritedAmount);
@@ -552,8 +588,8 @@
         document.getElementById(`change-${index}`).textContent = (change > 0 ? '+' : '') + format(change);
         document.getElementById(`revised-${index}`).textContent = format(revised);
       });
-      document.getElementById('adjustment-inherited').textContent = format(inherited);
-      document.getElementById('adjustment-purchased').textContent = format(purchased);
+      document.getElementById('adjustment-inherited').textContent = format(inheritedTotal);
+      document.getElementById('adjustment-purchased').textContent = format(purchasedTotal);
       document.getElementById('adjustment-current').textContent = format(currentTotal);
       document.getElementById('adjustment-percentage').textContent = format(percentTotal) + '%';
       document.getElementById('adjustment-change').textContent = format(changeTotal);
@@ -567,21 +603,27 @@
     function updateTable() {
       const inherited = Math.max(0, Number(document.getElementById('inherited').value) || 0);
       const purchased = Math.max(0, Number(document.getElementById('purchased').value) || 0);
+      let inheritedTotal = 0, purchasedTotal = 0;
       const rows = people.map(person => {
-        const inheritedAmount = inherited * person.inheritedWeight / sumOfWeights;
-        const purchasedAmount = person.purchaser ? purchased / purchaserCount : 0;
+        const { inherited: inheritedAmount, purchased: purchasedAmount } = getShares(person, inherited, purchased);
+        inheritedTotal += inheritedAmount;
+        purchasedTotal += purchasedAmount;
         return `<tr><td>${person.name}</td><td>${format(inheritedAmount)}</td><td>${format(purchasedAmount)}</td><td><strong>${format(inheritedAmount + purchasedAmount)}</strong></td></tr>`;
       });
       document.getElementById('rows').innerHTML = rows.join('');
-      document.getElementById('inheritedTotal').textContent = format(inherited);
-      document.getElementById('purchasedTotal').textContent = format(purchased);
-      document.getElementById('total').textContent = format(inherited + purchased);
+      document.getElementById('inheritedTotal').textContent = format(inheritedTotal);
+      document.getElementById('purchasedTotal').textContent = format(purchasedTotal);
+      document.getElementById('total').textContent = format(inheritedTotal + purchasedTotal);
       document.getElementById('grandTotal').textContent = `${format(inherited + purchased)} shotok`;
+      const excludedNote = document.getElementById('excluded-share-note');
+      excludedNote.hidden = !document.getElementById('disable-sima-mira').checked;
+      excludedNote.textContent = 'Sima and Mira are disabled. Their inherited shares are divided proportionally among the remaining people. The full land total is allocated.';
       updateAdjustments();
     }
 
     document.getElementById('inherited').addEventListener('input', updateTable);
     document.getElementById('purchased').addEventListener('input', updateTable);
+    document.getElementById('disable-sima-mira').addEventListener('change', updateTable);
     updateTable();
   </script>
 </body>
