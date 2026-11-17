@@ -1,34 +1,329 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Land Distribution Calculator</title>
   <style>
-    :root { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172337; background: #f5f7fb; }
-    * { box-sizing: border-box; }
-    body { max-width: 1050px; margin: 44px auto; padding: 0 18px; }
-    h1 { margin: 0 0 8px; font-size: clamp(1.5rem, 3vw, 2rem); }
-    p { margin: 0; color: #56657a; }
-    .inputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 26px 0 14px; }
-    .field, .table-card { background: white; border: 1px solid #e3e8f0; border-radius: 14px; }
-    .field { padding: 18px; }
-    label { display: block; font-weight: 650; margin-bottom: 10px; }
-    input { width: 100%; border: 1px solid #ccd6e4; border-radius: 9px; padding: 11px 13px; font: inherit; outline-color: #2465d5; }
-    .summary { margin: 0 0 20px; font-size: 1.07rem; }
-    .summary strong { color: #124da8; }
-    .table-card { overflow: hidden; }
-    table { width: 100%; border-collapse: collapse; text-align: right; font-variant-numeric: tabular-nums; }
-    th, td { padding: 13px 15px; border-bottom: 1px solid #edf0f5; white-space: nowrap; }
-    th { background: #f9fafc; color: #526176; font-size: .83rem; }
-    td:first-child, th:first-child { text-align: left; }
-    tr:last-child td { border: 0; }
-    tfoot td { background: #f1f6ff; font-weight: 700; }
-    .scroller { overflow-x: auto; }
-    .note { margin-top: 16px; font-size: .88rem; line-height: 1.6; }
-    @media (max-width: 600px) { body { margin: 22px auto; } .inputs { grid-template-columns: 1fr; } th,td { padding: 11px; } }
+    :root {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #172337;
+      background: #f5f7fb;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      max-width: 1050px;
+      margin: 44px auto;
+      padding: 0 18px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.5rem, 3vw, 2rem);
+    }
+
+    p {
+      margin: 0;
+      color: #56657a;
+    }
+
+    .inputs {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin: 26px 0 14px;
+    }
+
+    .field,
+    .table-card {
+      background: white;
+      border: 1px solid #e3e8f0;
+      border-radius: 14px;
+    }
+
+    .field {
+      padding: 18px;
+    }
+
+    label {
+      display: block;
+      font-weight: 650;
+      margin-bottom: 10px;
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid #ccd6e4;
+      border-radius: 9px;
+      padding: 11px 13px;
+      font: inherit;
+      outline-color: #2465d5;
+    }
+
+    .summary {
+      margin: 0 0 20px;
+      font-size: 1.07rem;
+    }
+
+    .summary strong {
+      color: #124da8;
+    }
+
+    .table-card {
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    th,
+    td {
+      padding: 13px 15px;
+      border-bottom: 1px solid #edf0f5;
+      white-space: nowrap;
+    }
+
+    th {
+      background: #f9fafc;
+      color: #526176;
+      font-size: .83rem;
+    }
+
+    td:first-child,
+    th:first-child {
+      text-align: left;
+    }
+
+    tr:last-child td {
+      border: 0;
+    }
+
+    tfoot td {
+      background: #f1f6ff;
+      font-weight: 700;
+    }
+
+    .scroller {
+      overflow-x: auto;
+    }
+
+    .note {
+      margin-top: 16px;
+      font-size: .88rem;
+      line-height: 1.6;
+    }
+
+    .timeline {
+      width: fit-content;
+      max-width: 100%;
+      margin-top: 24px;
+      padding: 16px 20px;
+      background: white;
+      border: 1px solid #e3e8f0;
+      border-radius: 14px;
+    }
+
+    .timeline h2 {
+      margin: 0 0 8px;
+      font-size: 1.2rem;
+    }
+
+    .timeline ol {
+      margin: 14px 0 0;
+      padding-left: 24px;
+      line-height: 1.8;
+    }
+
+    .land-list {
+      width: 680px;
+      max-width: 100%;
+      margin-top: 24px;
+    }
+
+    .land-list h2 {
+      margin: 0;
+      padding: 16px 20px;
+      font-size: 1.2rem;
+    }
+
+    .land-list .layout-note {
+      padding: 0 20px 16px;
+      font-size: .85rem;
+    }
+
+    .plot-scroll {
+      overflow-x: auto;
+      padding: 0 20px 20px;
+    }
+
+    .land-list .plot-layout {
+      min-width: 440px;
+      table-layout: fixed;
+    }
+
+    .land-list .plot-layout td {
+      padding: 0;
+      border: 0;
+      text-align: center;
+      white-space: normal;
+    }
+
+    .plot-layout .road-column {
+      width: 56px;
+    }
+
+    .land-list .plot-column {
+      height: 420px;
+      table-layout: fixed;
+    }
+
+    .land-list .plot-column.roadside-plots,
+    .land-list .plot-column.far-right-plots {
+      height: 300px;
+    }
+
+    .far-right-plots .empty-plot {
+      height: 84px;
+    }
+
+    .plot-column .brother-plot {
+      height: 120px;
+    }
+
+    .plot-column .sister-plot {
+      height: 60px;
+    }
+
+    .plot-column .milon-plot {
+      height: 132px;
+    }
+
+    .plot-layout>tbody>tr>td {
+      vertical-align: top;
+    }
+
+    .land-list .plot-column td {
+      border: 2px solid #a5c4b4;
+      padding: 12px 8px;
+      background: #edf6f0;
+      color: #254d3b;
+      font-weight: 600;
+    }
+
+    .land-list .plot-column .empty {
+      background: #f8fafc;
+      color: #8793a3;
+      border: 2px dashed #d3dce6;
+      font-weight: 400;
+      font-size: .85rem;
+    }
+
+    .land-list .plot-layout .road {
+      vertical-align: top;
+      border-left: 6px solid white;
+      border-right: 6px solid white;
+    }
+
+    .main-road-track {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 64px;
+      margin-bottom: 8px;
+      background: #667387;
+      border-top: 3px solid #475569;
+      border-bottom: 3px solid #475569;
+      color: white;
+    }
+
+    .main-road-track::before {
+      content: "";
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      top: 50%;
+      border-top: 2px dashed #dce3ed;
+    }
+
+    .main-road-track span {
+      position: relative;
+      padding: 6px 16px;
+      background: #667387;
+      font-size: .8rem;
+      font-weight: 650;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .road-track {
+      height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #667387;
+      color: white;
+    }
+
+    .plot-layout>tbody>tr>td:first-child .plot-column tr {
+      height: 120px;
+    }
+
+    .plot-layout>tbody>tr>td:first-child .plot-column tr:first-child {
+      height: 60px;
+    }
+
+    .land-list .plot-column .sorab-plot {
+      padding: 0;
+      border: 0;
+      background: transparent;
+    }
+
+    .sorab-plot div {
+      width: calc(100% + 56px);
+      height: 120px;
+      display: grid;
+      place-items: center;
+      position: relative;
+      border: 2px solid #a5c4b4;
+      background: #edf6f0;
+    }
+
+    .road span {
+      writing-mode: vertical-rl;
+      text-orientation: upright;
+      text-transform: uppercase;
+      letter-spacing: .3em;
+      font-size: .75rem;
+      font-weight: 650;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        margin: 22px auto;
+      }
+
+      .inputs {
+        grid-template-columns: 1fr;
+      }
+
+      th,
+      td {
+        padding: 11px;
+      }
+    }
   </style>
 </head>
+
 <body>
   <h1>Land Distribution Calculator</h1>
   <p>Change either amount to update every person's share instantly. Unit: shotok (শতক).</p>
@@ -49,13 +344,113 @@
   <div class="table-card scroller">
     <table>
       <thead>
-        <tr><th>Name</th><th>Inherited</th><th>Purchased</th><th>Total (shotok)</th></tr>
+        <tr>
+          <th>Name</th>
+          <th>Inherited</th>
+          <th>Purchased</th>
+          <th>Total (shotok)</th>
+        </tr>
       </thead>
       <tbody id="rows"></tbody>
-      <tfoot><tr><td>Total</td><td id="inheritedTotal"></td><td id="purchasedTotal"></td><td id="total"></td></tr></tfoot>
+      <tfoot>
+        <tr>
+          <td>Total</td>
+          <td id="inheritedTotal"></td>
+          <td id="purchasedTotal"></td>
+          <td id="total"></td>
+        </tr>
+      </tfoot>
     </table>
   </div>
-  <p class="note"><strong>Important:</strong> The inherited proportions are taken from the previous provisional family calculation and are <strong>not legally verified</strong>. The purchased land is assumed to be owned equally by the six named purchasers. Actual rights depend on inheritance law, heirs at each death, and registered deeds. Mira and Sima remain included until a legally effective transfer is established.</p>
+  <p class="note"><strong>Important:</strong> The inherited proportions are taken from the previous provisional family
+    calculation and are <strong>not legally verified</strong>. The purchased land is assumed to be owned equally by the
+    six named purchasers. Actual rights depend on inheritance law, heirs at each death, and registered deeds. Mira and
+    Sima remain included until a legally effective transfer is established.</p>
+
+  <section class="timeline" aria-labelledby="timeline-heading">
+    <h2 id="timeline-heading">Family death timeline</h2>
+    <p>Earliest to latest</p>
+    <ol>
+      <li>Sorab</li>
+      <li>Grandfather</li>
+      <li>Grandmother</li>
+      <li>Liton</li>
+      <li>Babul</li>
+    </ol>
+  </section>
+
+  <section class="land-list table-card" aria-labelledby="land-list-heading">
+    <h2 id="land-list-heading">Land for 7 people</h2>
+    <p class="layout-note">Proposed plot positions &middot; Not to scale</p>
+    <div class="plot-scroll">
+      <table class="plot-layout" aria-label="Land layout with a road between the left and right plots">
+        <colgroup>
+          <col>
+          <col class="road-column">
+          <col>
+          <col>
+        </colgroup>
+        <tbody>
+          <tr class="main-road">
+            <td colspan="4"><div class="main-road-track"><span>Main Road</span></div></td>
+          </tr>
+          <tr>
+            <td>
+              <table class="plot-column" aria-label="Plots to the left of the road">
+                <tbody>
+                  <tr>
+                    <td class="empty">Empty 1</td>
+                  </tr>
+                  <tr>
+                    <td class="border">Babul's Family</td>
+                  </tr>
+                  <tr>
+                    <td class="border">Monu</td>
+                  </tr>
+                  <tr>
+                    <td class="sorab-plot"><div>Sorab's son</div></td>
+                  </tr>
+                </tbody>
+              </table>
+            </td>
+            <td class="road">
+              <div class="road-track"><span>Road</span></div>
+            </td>
+            <td>
+              <table class="plot-column roadside-plots" aria-label="Plots beside the right side of the road">
+                <tbody>
+                  <tr class="brother-plot">
+                    <td class="border">Sanwar</td>
+                  </tr>
+                  <tr class="sister-plot">
+                    <td class="border">Tuhin</td>
+                  </tr>
+                  <tr class="brother-plot">
+                    <td class="border">Bulton</td>
+                  </tr>
+                </tbody>
+              </table>
+            </td>
+            <td>
+              <table class="plot-column far-right-plots" aria-label="Plots on the far right">
+                <tbody>
+                  <tr class="empty-plot">
+                    <td class="empty">Empty 2</td>
+                  </tr>
+                  <tr class="empty-plot">
+                    <td class="empty">Empty 3</td>
+                  </tr>
+                  <tr class="milon-plot">
+                    <td class="border">Milon</td>
+                  </tr>
+                </tbody>
+              </table>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 
   <script>
     // Inherited amounts from the previous 32-shotok example; normalized to 100%.
@@ -99,4 +494,5 @@
     updateTable();
   </script>
 </body>
+
 </html>
