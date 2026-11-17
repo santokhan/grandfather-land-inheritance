@@ -144,7 +144,7 @@
     }
 
     .land-list {
-      width: 680px;
+      width: 520px;
       max-width: 100%;
       margin-top: 24px;
     }
@@ -225,6 +225,21 @@
       border: 2px dashed #d3dce6;
       font-weight: 400;
       font-size: .85rem;
+    }
+
+    .land-list .far-right-plots .empty {
+      padding: 0;
+      border: 0;
+      background: transparent;
+    }
+
+    .far-right-plots .empty div {
+      width: 90%;
+      height: 84px;
+      display: grid;
+      place-items: center;
+      border: 2px dashed #d3dce6;
+      background: #f8fafc;
     }
 
     .land-list .plot-layout .road {
@@ -443,10 +458,10 @@
               <table class="plot-column far-right-plots" aria-label="Plots on the far right">
                 <tbody>
                   <tr class="empty-plot">
-                    <td class="empty">Empty 2</td>
+                    <td class="empty"><div>Empty 2</div></td>
                   </tr>
                   <tr class="empty-plot">
-                    <td class="empty">Empty 3</td>
+                    <td class="empty"><div>Empty 3</div></td>
                   </tr>
                   <tr class="milon-plot">
                     <td class="border">Milon</td>
